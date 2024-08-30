@@ -37,4 +37,90 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { ethers } from 'ethers'
+
+export default {
+  name: 'WrapEther',
+  setup() {
+    const walletConnected = ref(false)
+    const amount = ref('')
+    const result = ref('')
+    const error = ref('')
+    const contract = ref(null)
+
+    const contractABI = [
+      {
+        name: "deposit",
+        stateMutability: "payable",
+        inputs: [],
+        outputs: []
+      }
+    ]
+
+    const contractAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+
+    onMounted(async () => {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' })
+          walletConnected.value = true
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          const signer = await provider.getSigner()
+          contract.value = new ethers.Contract(contractAddress, contractABI, signer)
+        } catch (err) {
+          error.value = 'Failed to connect wallet: ' + err.message
+        }
+      } else {
+        error.value = 'MetaMask is not installed'
+      }
+    })
+
+    const connectWallet = async () => {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' })
+          walletConnected.value = true
+          error.value = ''
+        } catch (err) {
+          error.value = 'Failed to connect wallet: ' + err.message
+        }
+      } else {
+        error.value = 'MetaMask is not installed'
+      }
+    }
+
+    const wrapEther = async () => {
+      if (!walletConnected.value) {
+        error.value = 'Please connect your wallet first'
+        return
+      }
+
+      if (!amount.value || amount.value <= 0) {
+        error.value = 'Please enter a valid amount'
+        return
+      }
+
+      try {
+        const amountInWei = ethers.parseEther(amount.value)
+        const tx = await contract.value.deposit({ value: amountInWei })
+        await tx.wait()
+        result.value = `Successfully wrapped ${amount.value} ETH to WETH`
+        error.value = ''
+      } catch (err) {
+        error.value = 'Failed to wrap Ether: ' + err.message
+        result.value = ''
+      }
+    }
+
+    return {
+      walletConnected,
+      amount,
+      result,
+      error,
+      connectWallet,
+      wrapEther
+    }
+  }
+}
 </script>
