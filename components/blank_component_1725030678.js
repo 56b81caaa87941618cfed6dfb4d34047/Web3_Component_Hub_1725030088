@@ -113,14 +113,14 @@ export default {
       }
     }
 
-    return () => ({
+    return {
       walletConnected,
       amount,
       result,
       error,
       connectWallet,
       wrapEther
-    })
+    }
   }
 }
 </script>
